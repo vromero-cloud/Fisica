@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Tiro Parabólico - 3 Columnas</title>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1400px; margin: 20px auto; padding: 0 20px; color: #333; background-color: #f4f7f6; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 1px;}
+        
+        /* Contenedor principal a 3 columnas */
+        .app-container { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+        
+        /* Columna Izquierda: Controles */
+        .col-left { flex: 1.5; min-width: 250px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        
+        /* Columna Central: Simulación y Gráficas */
+        .col-center { flex: 4; min-width: 500px; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Columna Derecha: Ecuaciones */
+        .col-right { flex: 1.5; min-width: 250px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-top: 5px solid #3498db; position: sticky; top: 20px; }
+        
+        /* Estilos Internos - Controles */
+        .controls-title { color: #2c3e50; font-size: 1.1em; margin-top: 0; margin-bottom: 20px; text-align: center; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;}
+        .slider-group { display: flex; flex-direction: column; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #e9ecef;}
+        label { font-weight: bold; margin-bottom: 8px; font-size: 0.9em; color: #34495e;}
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .value-display { font-weight: bold; color: #3498db; float: right; background: #e8f4f8; padding: 2px 6px; border-radius: 4px;}
+        
+        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px;}
+        button { padding: 12px 20px; font-size: 1em; cursor: pointer; border: none; border-radius: 5px; color: white; font-weight: bold; transition: background 0.3s; text-transform: uppercase; letter-spacing: 1px;}
+        #play-btn { background: #2ecc71; }
+        #play-btn:hover { background: #27ae60; }
+        #reset-btn { background: #e74c3c; }
+        #reset-btn:hover { background: #c0392b; }
+
+        /* Estilos Internos - Resultados */
+        .results { background: white; display: flex; flex-wrap: wrap; justify-content: space-around; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); gap: 10px;}
+        .result-item { text-align: center; min-width: 140px; padding: 10px; border-right: 1px solid #ecf0f1; flex: 1;}
+        .result-item:last-child { border-right: none; }
+        .result-title { font-size: 0.85em; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;}
+        .result-value { font-size: 1.4em; font-weight: bold; color: #2c3e50; display: block;}
+        .result-optimal { color: #27ae60; font-size: 0.8em; margin-top: 3px; display: block; font-weight: bold;}
+        
+        /* Contenedores de Gráficas */
+        .graph-container { background: white; border-radius: 8px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        /* Estilos Internos - Ecuaciones */
+        .eq-title { color: #2c3e50; margin-top: 0; font-size: 1.1em; text-align: center; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px;}
+        .eq-section { margin-bottom: 20px; }
+        .eq-subtitle { font-size: 0.9em; font-weight: bold; color: #34495e; margin-bottom: 8px; display: block;}
+        .eq-box { background: #f8f9fa; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef; margin-bottom: 8px; font-family: 'Courier New', Courier, monospace; font-size: 0.95em; color: #2c3e50; text-align: center;}
+
+        /* Responsividad */
+        @media (max-width: 1000px) {
+            .app-container { flex-direction: column; }
+            .col-left, .col-center, .col-right { width: 100%; flex: auto; position: static; box-sizing: border-box; }
+            .btn-group { flex-direction: row; }
+            .btn-group button { flex: 1; }
+            .result-item { border-right: none; border-bottom: 1px solid #ecf0f1; }
+            .result-item:last-child { border-bottom: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Simulador de Tiro Parabólico</h1>
+
+    <div class="app-container">
+        
+        <div class="col-left">
+            <h2 class="controls-title">Controles de Entrada</h2>
+            
+            <div class="slider-group">
+                <label for="y0">Altura Inicial (y<sub>0</sub>): <span id="y0-val" class="value-display">0 m</span></label>
+                <input type="range" id="y0" min="0" max="100" step="1" value="0">
+            </div>
+            
+            <div class="slider-group">
+                <label for="v0">Velocidad Inicial (v<sub>0</sub>): <span id="v0-val" class="value-display">30 m/s</span></label>
+                <input type="range" id="v0" min="0" max="100" step="1" value="30">
+            </div>
+            
+            <div class="slider-group">
+                <label for="angulo">Ángulo (&theta;): <span id="angulo-val" class="value-display">45&deg;</span></label>
+                <input type="range" id="angulo" min="0" max="90" step="1" value="45">
+            </div>
+            
+            <div class="slider-group">
+                <label for="g">Gravedad (g): <span id="g-val" class="value-display">9.81 m/s&sup2;</span></label>
+                <input type="range" id="g" min="1" max="25" step="0.1" value="9.81">
+            </div>
+
+            <div class="btn-group">
+                <button id="play-btn">Reproducir / Pausar</button>
+                <button id="reset-btn">Reiniciar</button>
+            </div>
+        </div>
+
+        <div class="col-center">
+            <div class="results">
+                <div class="result-item">
+                    <span class="result-title">Tiempo de Vuelo</span>
+                    <span class="result-value" id="res-ttotal">0.00 s</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-title">Alcance Máximo (x)</span>
+                    <span class="result-value" id="res-xmax">0.00 m</span>
+                    <span class="result-optimal" id="res-opt">Max absoluto: 0.00 m</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-title">Altura Máxima (y)</span>
+                    <span class="result-value" id="res-ymax">0.00 m</span>
+                </div>
+            </div>
+
+            <div class="graph-container">
+                <div id="traj-graph"></div>
+            </div>
+            <div class="graph-container">
+                <div id="vel-graph"></div>
+            </div>
+        </div>
+
+        <div class="col-right">
+            <h2 class="eq-title">Ecuaciones Relevantes</h2>
+            
+            <div class="eq-section">
+                <span class="eq-subtitle">1. Posición (x, y)</span>
+                <div class="eq-box">x(t) = v<sub>0x</sub> &middot; t</div>
+                <div class="eq-box">y(t) = y<sub>0</sub> + v<sub>0y</sub> &middot; t - &frac12;gt&sup2;</div>
+            </div>
+
+            <div class="eq-section">
+                <span class="eq-subtitle">2. Velocidad (v<sub>x</sub>, v<sub>y</sub>)</span>
+                <div class="eq-box">v<sub>x</sub>(t) = v<sub>0x</sub></div>
+                <div class="eq-box">v<sub>y</sub>(t) = v<sub>0y</sub> - g &middot; t</div>
+            </div>
+
+            <div class="eq-section">
+                <span class="eq-subtitle">3. Componentes V<sub>0</sub></span>
+                <div class="eq-box">v<sub>0x</sub> = v<sub>0</sub> &middot; cos(&theta;)</div>
+                <div class="eq-box">v<sub>0y</sub> = v<sub>0</sub> &middot; sin(&theta;)</div>
+            </div>
+
+            <div class="eq-section">
+                <span class="eq-subtitle">4. Fórmulas (si y<sub>0</sub> = 0)</span>
+                <div class="eq-box" style="font-size: 0.85em;">T<sub>vuelo</sub> = (2 &middot; v<sub>0</sub> &middot; sin(&theta;)) / g</div>
+                <div class="eq-box" style="font-size: 0.85em;">R<sub>max</sub> = (v<sub>0</sub>&sup2; &middot; sin(2&theta;)) / g</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const y0Slider = document.getElementById('y0');
+        const v0Slider = document.getElementById('v0');
+        const anguloSlider = document.getElementById('angulo');
+        const gSlider = document.getElementById('g');
+        const playBtn = document.getElementById('play-btn');
+        const resetBtn = document.getElementById('reset-btn');
+
+        let simData = {};
+        let isPlaying = false;
+        let currentStep = 0;
+        const totalSteps = 120;
+        let animationId;
+
+        function calculatePhysics() {
+            const y0 = parseFloat(y0Slider.value);
+            const v0 = parseFloat(v0Slider.value);
+            const angulo = parseFloat(anguloSlider.value);
+            const g = parseFloat(gSlider.value);
+
+            // Actualizar etiquetas de los deslizadores
+            document.getElementById('y0-val').innerText = y0 + " m";
+            document.getElementById('v0-val').innerText = v0 + " m/s";
+            document.getElementById('angulo-val').innerHTML = angulo + "&deg;";
+            document.getElementById('g-val').innerHTML = g + " m/s&sup2;";
+
+            // Máximos absolutos (para el fondo verde y ejes fijos)
+            const x_max_abs = v0 === 0 ? 0 : (v0 / g) * Math.sqrt(v0 * v0 + 2 * g * y0);
+            const y_max_abs = y0 + (v0 * v0) / (2 * g);
+            
+            let radOpt = v0 === 0 ? 0 : Math.asin(1 / Math.sqrt(2 + (2 * g * y0) / (v0 * v0)));
+            const v0xOpt = v0 * Math.cos(radOpt);
+            const v0yOpt = v0 * Math.sin(radOpt);
+            const t_totalOpt = g === 0 ? 0 : (v0yOpt + Math.sqrt(v0yOpt * v0yOpt + 2 * g * y0)) / g;
+
+            // Datos actuales
+            const rad = angulo * Math.PI / 180;
+            const v0x = v0 * Math.cos(rad);
+            const v0y = v0 * Math.sin(rad);
+
+            const t_total = g === 0 ? 0 : (v0y + Math.sqrt(v0y * v0y + 2 * g * y0)) / g;
+            const x_max = v0x * t_total;
+            const y_max = y0 + (v0y * v0y) / (2 * g);
+
+            // Interfaz de resultados
+            document.getElementById('res-xmax').innerText = x_max.toFixed(2) + " m";
+            document.getElementById('res-opt').innerText = "Rango Óptimo: " + x_max_abs.toFixed(2) + " m";
+            document.getElementById('res-ymax').innerText = y_max.toFixed(2) + " m";
+            document.getElementById('res-ttotal').innerText = t_total.toFixed(2) + " s";
+
+            // Generar arrays de puntos (Actual)
+            const t = [], x = [], y = [], vx = [], vy = [];
+            for (let i = 0; i <= totalSteps; i++) {
+                let time = (t_total * i) / totalSteps;
+                if(isNaN(time)) time = 0;
+                t.push(time);
+                x.push(v0x * time);
+                let currentY = y0 + v0y * time - 0.5 * g * time * time;
+                y.push(Math.max(0, currentY)); 
+                vx.push(v0x);
+                vy.push(v0y - g * time);
+            }
+
+            // Generar arrays de puntos (Óptimo)
+            const xOptData = [], yOptData = [];
+            for (let i = 0; i <= totalSteps; i++) {
+                let time = (t_totalOpt * i) / totalSteps;
+                if(isNaN(time)) time = 0;
+                xOptData.push(v0xOpt * time);
+                let currentYOpt = y0 + v0yOpt * time - 0.5 * g * time * time;
+                yOptData.push(Math.max(0, currentYOpt));
+            }
+
+            simData = { t, x, y, vx, vy, t_total, x_max, y_max, x_max_abs, y_max_abs, xOptData, yOptData };
+        }
+
+        function renderFrame(step) {
+            const xPath = simData.x.slice(0, step + 1);
+            const yPath = simData.y.slice(0, step + 1);
+            
+            const traceOpt = { x: simData.xOptData, y: simData.yOptData, mode: 'lines', line: {color: 'rgba(46, 204, 113, 0.4)', width: 4, dash: 'solid'}, name: 'Ruta Óptima' };
+            const traceBg = { x: simData.x, y: simData.y, mode: 'lines', line: {color: 'lightgray', width: 2, dash: 'dash'}, name: 'Ruta Actual' };
+            const tracePath = { x: xPath, y: yPath, mode: 'lines', line: {color: '#8e44ad', width: 3}, name: 'Trayectoria' };
+            const traceDot = { x: [simData.x[step]], y: [simData.y[step]], mode: 'markers', marker: {color: '#2c3e50', size: 12}, name: 'Proyectil' };
+
+            let vScale = simData.t_total / 8; 
+            if (vScale < 0.1) vScale = 0.1;
+            
+            let annotations = [];
+            
+            if (step > 0 && step < totalSteps) {
+                const cx = simData.x[step];
+                const cy = simData.y[step];
+                const vx = simData.vx[step];
+                const vy = simData.vy[step];
+
+                // Vx (Azul)
+                annotations.push({ x: cx + vx * vScale, y: cy, ax: cx, ay: cy, xref: 'x', yref: 'y', axref: 'x', ayref: 'y', showarrow: true, arrowhead: 2, arrowsize: 1, arrowwidth: 2, arrowcolor: '#3498db' });
+                // Vy (Rojo)
+                annotations.push({ x: cx, y: cy + vy * vScale, ax: cx, ay: cy, xref: 'x', yref: 'y', axref: 'x', ayref: 'y', showarrow: true, arrowhead: 2, arrowsize: 1, arrowwidth: 2, arrowcolor: '#e74c3c' });
+                // V Total (Oscuro)
+                annotations.push({ x: cx + vx * vScale, y: cy + vy * vScale, ax: cx, ay: cy, xref: 'x', yref: 'y', axref: 'x', ayref: 'y', showarrow: true, arrowhead: 2, arrowsize: 1.5, arrowwidth: 3, arrowcolor: '#2c3e50' });
+            }
+
+            const layoutTraj = { 
+                title: {text: 'TRAYECTORIA (Y vs X)', font: {size: 14}}, 
+                xaxis: {title: 'Distancia (m)', range: [0, Math.max(simData.x_max_abs * 1.05, 10)]}, 
+                yaxis: {title: 'Altura (m)', range: [0, Math.max(simData.y_max_abs * 1.1, 10)]},
+                showlegend: false, margin: { l: 40, r: 20, t: 40, b: 40 },
+                annotations: annotations, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: '#fcfcfc'
+            };
+            Plotly.react('traj-graph', [traceOpt, traceBg, tracePath, traceDot], layoutTraj);
+
+            const traceVx = { x: simData.t, y: simData.vx, mode: 'lines', line: {color: '#3498db', width: 2}, name: 'Vx' };
+            const traceVy = { x: simData.t, y: simData.vy, mode: 'lines', line: {color: '#e74c3c', width: 2}, name: 'Vy' };
+            const traceVxDot = { x: [simData.t[step]], y: [simData.vx[step]], mode: 'markers', marker: {color: '#3498db', size: 10}, name: 'Vx actual' };
+            const traceVyDot = { x: [simData.t[step]], y: [simData.vy[step]], mode: 'markers', marker: {color: '#e74c3c', size: 10}, name: 'Vy actual' };
+
+            const layoutVel = { 
+                title: {text: 'VELOCIDADES vs TIEMPO (V vs T)', font: {size: 14}}, 
+                xaxis: {title: 'Tiempo (s)', range: [0, Math.max(simData.t_total, 0.1)]}, 
+                yaxis: {title: 'Velocidad (m/s)'},
+                shapes: [{type: 'line', x0: 0, x1: Math.max(simData.t_total, 0.1), y0: 0, y1: 0, line: {color: 'gray', width: 1, dash: 'dash'}}],
+                showlegend: false, margin: { l: 40, r: 20, t: 40, b: 40 },
+                paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: '#fcfcfc'
+            };
+            Plotly.react('vel-graph', [traceVx, traceVy, traceVxDot, traceVyDot], layoutVel);
+        }
+
+        function animate() {
+            if (!isPlaying) return;
+            currentStep += 1;
+            
+            if (currentStep > totalSteps) {
+                isPlaying = false;
+                playBtn.style.background = '#2ecc71';
+                return;
+            }
+            
+            renderFrame(currentStep);
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                isPlaying = false;
+                playBtn.style.background = '#2ecc71';
+                cancelAnimationFrame(animationId);
+            } else {
+                if (currentStep >= totalSteps) currentStep = 0; 
+                isPlaying = true;
+                playBtn.style.background = '#e67e22';
+                animate();
+            }
+        }
+
+        function resetSimulation() {
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            playBtn.style.background = '#2ecc71';
+            currentStep = 0;
+            calculatePhysics();
+            renderFrame(totalSteps); 
+        }
+
+        function onSliderChange() {
+            isPlaying = false;
+            cancelAnimationFrame(animationId);
+            playBtn.style.background = '#2ecc71';
+            calculatePhysics();
+            renderFrame(totalSteps); 
+            currentStep = 0;
+        }
+
+        y0Slider.addEventListener('input', onSliderChange);
+        v0Slider.addEventListener('input', onSliderChange);
+        anguloSlider.addEventListener('input', onSliderChange);
+        gSlider.addEventListener('input', onSliderChange);
+        
+        playBtn.addEventListener('click', togglePlay);
+        resetBtn.addEventListener('click', resetSimulation);
+
+        // Iniciar
+        resetSimulation();
+    </script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Física Interactiva: Dinámica y DCL</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root { --accent: #ffd600; --blue-btn: #2196f3; --text: #263238; --green: #43a047; --red: #e53935; --blue: #1e88e5; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #fafafa; color: var(--text); display: flex; flex-direction: column; height: 100vh; }
+        header { background: #fff; border-bottom: 2px solid #eee; padding: 10px; text-align: center; }
+        .container { display: grid; grid-template-columns: 320px 1fr 320px; gap: 15px; padding: 15px; flex-grow: 1; overflow: hidden; }
+        .panel { background: #fff; padding: 15px; border-radius: 12px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-y: auto; }
+        canvas { background: #ffffff; border: 1px solid #f0f0f0; width: 100%; border-radius: 8px; }
+        .controls label { font-weight: 600; display: block; margin-top: 10px; font-size: 0.85em; }
+        input[type="range"] { width: 100%; cursor: pointer; margin: 5px 0; accent-color: var(--blue-btn); }
+        .val { color: var(--blue-btn); font-weight: bold; float: right; }
+        .check-group { margin-top: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; border: 1px solid #eceff1; }
+        .check-item { margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .check-row { display: flex; align-items: center; font-weight: 600; cursor: pointer; font-size: 0.9em; margin-bottom: 4px; }
+        .check-row input { margin-right: 10px; }
+        .force-display { font-family: 'Segoe UI', sans-serif; font-size: 0.95em; color: #455a64; margin-left: 26px; font-weight: 600; }
+        button { width: 100%; padding: 12px; margin-top: 15px; background: var(--blue-btn); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { background: #1976d2; }
+        .math-box { font-size: 0.9em; line-height: 1.4; }
+        .questions { font-size: 0.85em; color: #455a64; margin-top: 10px; padding: 10px; background: #fff8e1; border-left: 4px solid #ffb300; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2 style="margin:0;">Simulador de Plano Inclinado: DCL y Análisis de Fuerzas</h2>
+</header>
+
+<div class="container">
+    <div class="panel">
+        <h3>Configuración</h3>
+        <label>Ángulo \(\theta\) [°]: <span id="deg" class="val">30</span></label>
+        <input type="range" id="angle" min="5" max="55" value="30">
+        
+        <label>Coef. Fricción \(\mu\) [adim.]: <span id="fric" class="val">0.20</span></label>
+        <input type="range" id="mu" min="0" max="0.8" step="0.01" value="0.2">
+
+        <label>Masa \(m\) [kg]: <span id="mass" class="val">5</span></label>
+        <input type="range" id="m" min="2" max="15" step="1" value="5">
+        
+        <div class="check-group">
+            <strong>Diagrama de Fuerzas:</strong>
+            <div class="check-item">
+                <label class="check-row"><input type="checkbox" id="showW" checked> Peso</label>
+                <div class="force-display">\(W = \) <span id="valW">--</span> N</div>
+            </div>
+            <div class="check-item">
+                <label class="check-row"><input type="checkbox" id="showN" checked> Normal</label>
+                <div class="force-display">\(N = \) <span id="valN">--</span> N</div>
+            </div>
+            <div class="check-item">
+                <label class="check-row"><input type="checkbox" id="showF" checked> Fricción</label>
+                <div class="force-display">\(f_r = \) <span id="valF">--</span> N</div>
+            </div>
+        </div>
+        
+        <button onclick="resetSim()">Reiniciar Experimento</button>
+    </div>
+
+    <div class="panel">
+        <canvas id="simCanvas" width="600" height="380"></canvas>
+        <h4 style="margin: 15px 0 5px 0; color: #78909c;">Velocidad instantánea \(v\) vs \(t\)</h4>
+        <canvas id="graphCanvas" width="600" height="150"></canvas>
+        
+        <div class="questions">
+            <strong>Preguntas de Análisis:</strong>
+            <ol>
+                <li>¿Qué sucede con la fuerza normal \(N\) si aumentamos el ángulo \(\theta\)?</li>
+                <li>¿A partir de qué ángulo el peso \(W_x\) vence a la fricción estática?</li>
+                <li>¿Cómo afecta el coeficiente \(\mu\) a la pendiente de la gráfica \(v(t)\)?</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="panel math-box">
+        <h3>Ecuaciones Dinámicas</h3>
+        \( W_x = m \cdot g \cdot \sin(\theta) \)<br>
+        \( W_y = m \cdot g \cdot \cos(\theta) \)
+        <p>Eje perpendicular:</p>
+        \( N = m \cdot g \cdot \cos(\theta) \)
+        <p>Eje paralelo:</p>
+        \( a = g(\sin\theta - \mu\cos\theta) \)
+        <hr>
+        <p><strong>Componentes:</strong></p>
+        \( v = v_0 + a \cdot t \)<br>
+        \( x = x_0 + v_0 t + \frac{1}{2} a t^2 \)
+        <p style="font-size: 0.8em; color: #666; margin-top:20px;">Nota: El diagrama de cuerpo libre (DCL) se visualiza por encima del bloque para evitar obstrucciones visuales.</p>
+    </div>
+</div>
+
+<script>
+    const simCanvas = document.getElementById('simCanvas');
+    const ctxSim = simCanvas.getContext('2d');
+    const graphCanvas = document.getElementById('graphCanvas');
+    const ctxGraph = graphCanvas.getContext('2d');
+
+    let t = 0, dist = 0, points = [], animationId;
+
+    function resetSim() {
+        t = 0; dist = 0; points = [];
+        cancelAnimationFrame(animationId);
+        animate();
+    }
+
+    function drawVector(ctx, x, y, angle, len, color, label) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(len, 0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(len, 0); ctx.lineTo(len-10, -5); ctx.lineTo(len-10, 5); ctx.fill();
+        ctx.restore();
+        
+        ctx.save();
+        ctx.font = "bold 14px Arial";
+        ctx.fillStyle = color;
+        const labelX = x + Math.cos(angle) * (len + 15);
+        const labelY = y + Math.sin(angle) * (len + 15);
+        ctx.fillText(label, labelX - 5, labelY + 5);
+        ctx.restore();
+    }
+
+    function animate() {
+        const angDeg = document.getElementById('angle').value;
+        const theta = angDeg * Math.PI / 180;
+        const mu = parseFloat(document.getElementById('mu').value);
+        const m = parseFloat(document.getElementById('m').value);
+        const g = 9.81;
+
+        const W = m * g;
+        const N = W * Math.cos(theta);
+        const Wx = W * Math.sin(theta);
+        let a = g * (Math.sin(theta) - mu * Math.cos(theta));
+        if (a < 0) a = 0;
+        const frActual = (a > 0) ? (mu * N) : Wx;
+
+        document.getElementById('deg').innerText = angDeg;
+        document.getElementById('fric').innerText = mu.toFixed(2);
+        document.getElementById('mass').innerText = m;
+        document.getElementById('valW').innerText = W.toFixed(2);
+        document.getElementById('valN').innerText = N.toFixed(2);
+        document.getElementById('valF').innerText = frActual.toFixed(2);
+
+        const rampaLen = 520;
+        if (dist < rampaLen - 60) {
+            t += 0.016;
+            dist = 0.5 * a * t * t * 25; 
+            points.push({t: t * 40, v: (a * t) * 10});
+        }
+
+        ctxSim.clearRect(0,0,600,380);
+        const startX = 40, startY = 320 - (rampaLen * Math.sin(theta));
+        const endX = 40 + (rampaLen * Math.cos(theta)), endY = 320;
+
+        // Rampa
+        ctxSim.beginPath();
+        ctxSim.moveTo(startX, startY); ctxSim.lineTo(endX, endY); ctxSim.lineTo(startX, endY);
+        ctxSim.closePath(); ctxSim.fillStyle = "#f5f5f5"; ctxSim.fill(); ctxSim.stroke();
+
+        // Ángulo theta en el vértice derecho
+        ctxSim.beginPath();
+        ctxSim.arc(endX, endY, 60, Math.PI, Math.PI + theta);
+        ctxSim.strokeStyle = "#546e7a";
+        ctxSim.stroke();
+        ctxSim.font = "italic 16px serif";
+        ctxSim.fillStyle = "#263238";
+        ctxSim.fillText("θ", endX - 80, endY - 10);
+
+        ctxSim.save();
+        ctxSim.translate(startX, startY);
+        ctxSim.rotate(theta);
+        
+        let cx = dist + 20; 
+        let cy = -12.5; 
+        let dclY = cy - 70; // Elevación de los vectores
+
+        // Ejes Coordenados sobre el bloque
+        ctxSim.setLineDash([5, 5]);
+        ctxSim.strokeStyle = "rgba(255, 0, 0, 0.4)"; 
+        ctxSim.beginPath(); ctxSim.moveTo(cx, dclY); ctxSim.lineTo(cx+60, dclY); ctxSim.stroke();
+        ctxSim.strokeStyle = "rgba(0, 0, 255, 0.4)"; 
+        ctxSim.beginPath(); ctxSim.moveTo(cx, dclY); ctxSim.lineTo(cx, dclY-60); ctxSim.stroke();
+        ctxSim.setLineDash([]);
+        
+        // Línea de referencia vertical entre bloque y DCL
+        ctxSim.beginPath(); ctxSim.strokeStyle = "#e0e0e0"; ctxSim.moveTo(cx, cy); ctxSim.lineTo(cx, dclY); ctxSim.stroke();
+
+        // Dibujo de Vectores
+        if(document.getElementById('showW').checked) drawVector(ctxSim, cx, dclY, Math.PI/2 - theta, m*5, "#43a047", "W");
+        if(document.getElementById('showN').checked) drawVector(ctxSim, cx, dclY, -Math.PI/2, m*4, "#1e88e5", "N");
+        if(document.getElementById('showF').checked) drawVector(ctxSim, cx, dclY, Math.PI, (frActual/W)*m*15, "#e53935", "fr");
+
+        // Bloque Amarillo
+        ctxSim.fillStyle = "#ffd600"; ctxSim.strokeStyle = "#333"; ctxSim.lineWidth = 1;
+        ctxSim.fillRect(dist, -25, 40, 25); ctxSim.strokeRect(dist, -25, 40, 25);
+        ctxSim.restore();
+
+        // Dibujo de la Gráfica
+        ctxGraph.clearRect(0,0,600,150);
+        ctxGraph.beginPath(); ctxGraph.strokeStyle = "#2196f3";
+        points.forEach((p, i) => { if(i===0) ctxGraph.moveTo(40+p.t, 130-p.v); else ctxGraph.lineTo(40+p.t, 130-p.v); });
+        ctxGraph.stroke();
+        ctxGraph.strokeStyle = "#000"; ctxGraph.beginPath(); ctxGraph.moveTo(40,10); ctxGraph.lineTo(40,130); ctxGraph.lineTo(580,130); ctxGraph.stroke();
+
+        animationId = requestAnimationFrame(animate);
+    }
+    animate();
+</script>
+</body>
+</html>
